@@ -3,7 +3,7 @@ import {
   Route, Switch, BrowserRouter, Redirect,
 } from 'react-router-dom';
 import { observer, inject } from 'mobx-react';
-import { preUrl } from 'app/lib/utils';
+import { preUrl } from 'app/lib/constant';
 import { CSSTransition } from 'react-transition-group';
 import * as pages from './pages';
 import routeConfig from './router.config';
