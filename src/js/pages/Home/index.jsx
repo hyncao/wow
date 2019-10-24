@@ -7,6 +7,7 @@ function Home() {
     <div className={styles.content}>
       <Range />
       <Item id="backStab" />
+      <Item id="eviscerate" />
     </div>
   );
 }

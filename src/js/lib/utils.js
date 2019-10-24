@@ -88,3 +88,5 @@ export const showComponent = ({
     didLoad
   }
 }) => didLoad();
+
+export const isCrit = (crit) => Math.random() < crit;

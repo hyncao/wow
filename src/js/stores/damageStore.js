@@ -4,7 +4,13 @@ export default class gcdStore {
   @observable damageData = [];
 
   @action.bound
-  setGcd(damageData){
-    this.damageData = damageData;
+  setDamageData(damageData){
+    const data = [...this.damageData].map((i) => {
+      if (i.id === damageData.id) {
+        return damageData;
+      }
+      return i;
+    });
+    this.damageData = data;
   }
 }

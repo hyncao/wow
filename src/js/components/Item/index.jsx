@@ -3,13 +3,15 @@ import { observer, inject } from 'mobx-react';
 import CoolDown from './CoolDown';
 import { gcd } from 'app/lib/constant';
 import skillData from 'app/lib/skillData';
+import { isCrit } from 'app/lib/utils';
+import formula from 'app/lib/formula';
 import styles from './index.module.scss';
 import bg from 'assets/images/item.png';
 import bgOn from 'assets/images/itemOn.png';
 import empty from 'assets/sounds/empty.mp3';
 
 @observer
-@inject('volumeStore', 'gcdStore')
+@inject('volumeStore', 'gcdStore', 'characterStore', 'damageStore')
 class Item extends Component {
   constructor(props) {
     super(props);
@@ -22,6 +24,7 @@ class Item extends Component {
     }
     this.play = this.play.bind(this);
     this.startCd = this.startCd.bind(this);
+    this.costEnergy = this.costEnergy.bind(this);
     this.dealDamage = this.dealDamage.bind(this);
     this.cast = this.cast.bind(this);
     this.handleTouchStart = this.handleTouchStart.bind(this);
@@ -32,6 +35,13 @@ class Item extends Component {
     const { id } = this.props;
     const skillObj = skillData.filter((i) => i.id === id)[0];
     this.setState({ skillObj, loading: false });
+  }
+
+  componentWillReceiveProps(prevProps, nextProps) {
+    const { colddown } = this.nextProps;
+    if (!colddown && nextProps.gcdStore.getGcd !== prevProps.gcdStore.getGcd) {
+      this.setState({ cd: nextProps.gcdStore.getGcd });
+    }
   }
 
   play() {
@@ -45,7 +55,7 @@ class Item extends Component {
 
   startCd() {
     const { colddown, gcdStore: { setGcd } } = this.props;
-    setGcd();
+    setGcd(colddown || gcd);
     this.setState({ cd: colddown || gcd });
     const t = setInterval(() => {
       const { cd } = this.state;
@@ -53,19 +63,70 @@ class Item extends Component {
       if (newCd === 0) {
         clearInterval(t);
       }
+      setGcd(newCd);
       this.setState({ cd: newCd });
     }, 100);
   }
 
-  dealDamage() {
+  costEnergy() {
+    const { skillObj: { cost } } = this.state;
+    const { characterStore: { setEnergy, recoverTimer, setRecoverTimer, character: { energy } } } = this.props;
+    if (energy < cost) return false;
+    // 扣除能量
+    setEnergy(energy - cost);
+    clearInterval(recoverTimer);
+    const timer = setInterval(() => {
+      const { characterStore: { character: { energy } } } = this.props;
+      setEnergy(energy + 1);
+    }, 100)
+    setRecoverTimer(timer);
+    return true
+  }
 
+  dealDamage() {
+    const { skillObj: { id, skillType, name, comboReward, multiplyEffect, increase } } = this.state;
+    const { characterStore: { ap, crit, character: { weaponDPH, weaponType, critDamage, comboPoint }, setCombo, }, damageStore: { setDamageData } } = this.props;
+
+    let baseDamage = 1;
+    if (skillType === 'combo') {
+      const multiply = multiplyEffect.split('*');
+      multiply.forEach((i) => {
+        let multiplier;
+        if (isNaN(parseFloat(i))) {
+          multiplier = formula[i]({ weaponDPH: weaponDPH, weaponType: weaponType, ap });
+        } else {
+          multiplier = parseFloat(i);
+        }
+        baseDamage *= multiplier;
+      })
+      setCombo(comboReward);
+    } else {
+      const total = increase * comboPoint;
+      baseDamage = total * formula[multiplyEffect]({ weaponDPH: weaponDPH, weaponType: weaponType, ap });
+      setCombo(0);
+    }
+    // 计算暴击
+    const critFlag = isCrit(crit);
+    if (critFlag) {
+      baseDamage *= critDamage;
+    }
+    // 对伤害进行四舍五入
+    baseDamage = Math.round(baseDamage);
+    console.log(baseDamage);
+    const damageObj = {
+      id, name, damage: baseDamage, critFlag,
+    }
+    setDamageData(damageObj);
   }
 
   cast() {
     const { cd } = this.state;
     if (cd === 0) {
-      this.play();
-      this.startCd();
+      if (this.costEnergy()) {
+        this.play();
+        this.startCd();
+        this.dealDamage();
+      }
     }
   }
 
@@ -82,7 +143,7 @@ class Item extends Component {
     const { bgImg, cd, loading } = this.state;
     if (loading) return null;
     const { className, id } = this.props;
-    const skillImg = require(`assets/images/rogue/backStab.jpg`);
+    const skillImg = require(`assets/images/rogue/${id}.jpg`);
     const sound = require(`assets/sounds/${id}.mp3`);
     const itemProp = {
       onTouchStart: this.handleTouchStart,
