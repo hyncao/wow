@@ -1,4 +1,8 @@
-import { observable, action, computed } from "mobx";
+import {
+  observable,
+  action,
+  computed
+} from "mobx";
 
 export default class characterStore {
   @observable character = {
@@ -25,7 +29,10 @@ export default class characterStore {
 
   @action.bound
   setCombo(num) {
-    let comboPoint = this.character.comboPoint + num;
+    let comboPoint = 0;
+    if (num !== 0) {
+      comboPoint = this.character.comboPoint + num;
+    }
     comboPoint = comboPoint > 5 ? 5 : comboPoint;
     this.character.comboPoint = comboPoint;
   }
@@ -41,7 +48,7 @@ export default class characterStore {
   }
 
   @action.bound
-  setCharacter(obj){
+  setCharacter(obj) {
     this.character = {
       ...this.character,
       ...obj,

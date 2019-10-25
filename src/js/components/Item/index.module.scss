@@ -24,3 +24,16 @@
 .audio {
   display: none;
 }
+
+.disabled{
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 90%;
+  height: 90%;
+  left: 5%;
+  top: 5%;
+  z-index: 1;
+  background-color: rgba(40, 40, 65, 0.8);
+}

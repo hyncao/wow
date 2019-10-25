@@ -6,6 +6,5 @@ export default class gcdStore {
   @action.bound
   setGcd(gcd){
     this.getGcd = gcd;
-    console.log('gcd', this.getGcd);
   }
 }

@@ -10,15 +10,13 @@ import bg from 'assets/images/item.png';
 import bgOn from 'assets/images/itemOn.png';
 import empty from 'assets/sounds/empty.mp3';
 
-@observer
 @inject('volumeStore', 'gcdStore', 'characterStore', 'damageStore')
+@observer
 class Item extends Component {
   constructor(props) {
     super(props);
-    const { colddown, gcdStore: { getGcd } } = props;
     this.state = {
       bgImg: bg,
-      cd: colddown || getGcd,
       skillObj: {},
       loading: true,
     }
@@ -37,13 +35,6 @@ class Item extends Component {
     this.setState({ skillObj, loading: false });
   }
 
-  componentWillReceiveProps(prevProps, nextProps) {
-    const { colddown } = this.nextProps;
-    if (!colddown && nextProps.gcdStore.getGcd !== prevProps.gcdStore.getGcd) {
-      this.setState({ cd: nextProps.gcdStore.getGcd });
-    }
-  }
-
   play() {
     const { id, volumeStore: { volume }, } = this.props;
     const audio = document.getElementById(id);
@@ -54,17 +45,15 @@ class Item extends Component {
   }
 
   startCd() {
-    const { colddown, gcdStore: { setGcd } } = this.props;
-    setGcd(colddown || gcd);
-    this.setState({ cd: colddown || gcd });
+    const { gcdStore: { setGcd } } = this.props;
+    setGcd(gcd);
     const t = setInterval(() => {
-      const { cd } = this.state;
-      const newCd = cd - 100;
+      const { gcdStore: { getGcd, setGcd } } = this.props;
+      const newCd = getGcd - 100;
       if (newCd === 0) {
         clearInterval(t);
       }
       setGcd(newCd);
-      this.setState({ cd: newCd });
     }, 100);
   }
 
@@ -120,8 +109,9 @@ class Item extends Component {
   }
 
   cast() {
-    const { cd } = this.state;
-    if (cd === 0) {
+    const { skillObj: { skillType } } = this.state;
+    const { characterStore: { character: { comboPoint } }, gcdStore: { getGcd } } = this.props;
+    if ((comboPoint !== 0 || skillType !== 'finish') && getGcd === 0) {
       if (this.costEnergy()) {
         this.play();
         this.startCd();
@@ -140,9 +130,10 @@ class Item extends Component {
   }
 
   render() {
-    const { bgImg, cd, loading } = this.state;
+    const { bgImg, skillObj, loading } = this.state;
     if (loading) return null;
-    const { className, id } = this.props;
+    const { className, id, gcdStore: { getGcd }, characterStore: { character: { comboPoint, energy } } } = this.props;
+    const { skillType, cost } = skillObj;
     const skillImg = require(`assets/images/rogue/${id}.jpg`);
     const sound = require(`assets/sounds/${id}.mp3`);
     const itemProp = {
@@ -152,7 +143,8 @@ class Item extends Component {
     return (
       <div className={className}>
         <div className={styles.item} {...itemProp}>
-          <CoolDown cd={cd} />
+          {((comboPoint === 0 && skillType === 'finish') || energy < cost) && <div className={styles.disabled} />}
+          <CoolDown cd={getGcd} />
           <img className={styles.bg} src={bgImg} alt="bg" />
           <img className={styles.skill} src={skillImg} alt="skill" />
         </div>
