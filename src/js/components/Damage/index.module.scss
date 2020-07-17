@@ -1,0 +1,22 @@
+.damage {
+  color: #887064;
+  font-size: 0.5rem;
+  animation: slide 2s ease-out forwards;
+
+  @keyframes slide {
+    from {
+      margin-top: 0;
+      opacity: 1;
+    }
+    to {
+      margin-top: -1rem;
+      opacity: 0;
+    }
+  }
+
+  &.crit {
+    color: #ee8016;
+    font-size: 0.7rem;
+    font-weight: bold;
+  }
+}
